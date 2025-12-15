@@ -5,7 +5,7 @@ Central place for reusable GitHub Actions workflows used across Wormhole project
 ## Repository layout
 
 - `.github/workflows/` — home for reusable workflows.
-- `.github/workflows/.github/workflows/wormhole-demo-typecheck.yml` — runs `npm run typecheck` against the latest `@wormhole-foundation/sdk`, captures logs, and opens a GitHub issue when failures occur on scheduled or manual runs.
+- `.github/workflows/wormhole-demo-typecheck.yml` — runs `npm run typecheck` against the latest `@wormhole-foundation/sdk`, captures logs, and opens a GitHub issue when failures occur on scheduled or manual runs.
 
 ## Using a workflow from another repo
 
