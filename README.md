@@ -14,10 +14,12 @@ Central place for reusable GitHub Actions workflows used across Wormhole project
 This workflow is a “canary” check that validates type compatibility with the newest Wormhole SDK release:
 
 - Installs your repo dependencies from the lockfile (`npm ci`).
-- Temporarily overrides `@wormhole-foundation/sdk` to `@latest` (without updating your lockfile).
-- Runs your project’s `npm run typecheck` and fails if there are any TypeScript/type errors.
+- Temporarily overrides `@wormhole-foundation/sdk` to `@latest` (without updating your lockfile) and logs the exact version pulled (e.g., `@4.7.1`).
+- Runs your project’s `npm run typecheck` against that resolved SDK version and fails if there are any TypeScript/type errors.
 
-It catches things like removed/renamed types or API signature changes (new/changed parameters) that would make the repo no longer typecheck against the latest SDK.
+Each run tests against the version of`@wormhole-foundation/sdk` published as `@wormhole-foundation/sdk@latest` at runtime and records the version in the logs so you know what was validated.
+
+It catches things like removed/renamed types or API signature changes (new/changed parameters) that would make the repo no longer typecheck against the latest published `@latest` SDK.
 
 ## Using a workflow from another repo
 
