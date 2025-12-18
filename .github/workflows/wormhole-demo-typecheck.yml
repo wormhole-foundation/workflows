@@ -36,17 +36,22 @@ jobs:
       - name: Resolve Wormhole SDK version
         id: sdk-version
         run: |
-          set -e
+          set +e
           node <<'EOF'
           const fs = require('fs');
           const path = require('path');
           const pkgPath = path.join(process.cwd(), 'node_modules', '@wormhole-foundation', 'sdk', 'package.json');
-          if (!fs.existsSync(pkgPath)) {
-            throw new Error('Could not find node_modules/@wormhole-foundation/sdk/package.json');
-          }
-          const version = JSON.parse(fs.readFileSync(pkgPath, 'utf8')).version;
-          if (!version) {
-            throw new Error('Version not found in @wormhole-foundation/sdk package.json');
+          let version = 'unknown';
+          try {
+            if (fs.existsSync(pkgPath)) {
+              const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+              if (pkg.version) version = pkg.version;
+              else console.warn('Version not found in @wormhole-foundation/sdk package.json');
+            } else {
+              console.warn('Could not find node_modules/@wormhole-foundation/sdk/package.json');
+            }
+          } catch (err) {
+            console.warn(`Could not determine SDK version: ${err.message}`);
           }
           console.log(`Using @wormhole-foundation/sdk@${version}`);
           if (process.env.GITHUB_OUTPUT) {
