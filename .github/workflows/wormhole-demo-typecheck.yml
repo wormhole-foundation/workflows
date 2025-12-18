@@ -31,13 +31,41 @@ jobs:
       - name: Override Wormhole SDK to @latest
         run: |
           npm install --no-save --force @wormhole-foundation/sdk@latest
-          npm ls @wormhole-foundation/sdk --depth=0 || true
+
+      # Resolve and record the SDK version installed
+      - name: Resolve Wormhole SDK version
+        id: sdk-version
+        run: |
+          set +e
+          node <<'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          const pkgPath = path.join(process.cwd(), 'node_modules', '@wormhole-foundation', 'sdk', 'package.json');
+          let version = 'unknown';
+          try {
+            if (fs.existsSync(pkgPath)) {
+              const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+              if (pkg.version) version = pkg.version;
+              else console.warn('Version not found in @wormhole-foundation/sdk package.json');
+            } else {
+              console.warn('Could not find node_modules/@wormhole-foundation/sdk/package.json');
+            }
+          } catch (err) {
+            console.warn(`Could not determine SDK version: ${err.message}`);
+          }
+          console.log(`Using @wormhole-foundation/sdk@${version}`);
+          if (process.env.GITHUB_OUTPUT) {
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `sdk_version=${version}\n`);
+          }
+          EOF
 
       # Run typecheck, capture logs, and record result
       - name: Type check against latest SDK
         id: typecheck
         continue-on-error: true # allow flow to continue even when typecheck fails
         run: |
+          sdk_version="${{ steps.sdk-version.outputs.sdk_version }}"
+          echo "Running typecheck against @wormhole-foundation/sdk@${sdk_version:-unknown}"
           set -o pipefail
           set +e
           npm run typecheck 2>&1 | tee typecheck.log

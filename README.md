@@ -7,6 +7,20 @@ Central place for reusable GitHub Actions workflows used across Wormhole project
 - `.github/workflows/` — home for reusable workflows.
 - `.github/workflows/wormhole-demo-typecheck.yml` — runs `npm run typecheck` against the latest `@wormhole-foundation/sdk`, captures logs, and opens a GitHub issue when failures occur on scheduled or manual runs.
 
+## Current workflows
+
+### Wormhole - SDK Type Check (`wormhole-demo-typecheck.yml`)
+
+This workflow is a “canary” check that validates type compatibility with the newest Wormhole SDK release:
+
+- Installs your repo dependencies from the lockfile (`npm ci`).
+- Temporarily overrides `@wormhole-foundation/sdk` to `@latest` (without updating your lockfile) and logs the exact version pulled (e.g., `@4.7.1`).
+- Runs your project’s `npm run typecheck` against that resolved SDK version and fails if there are any TypeScript/type errors.
+
+Each run tests against the version of`@wormhole-foundation/sdk` published as `@wormhole-foundation/sdk@latest` at runtime and records the version in the logs so you know what was validated.
+
+It catches things like removed/renamed types or API signature changes (new/changed parameters) that would make the repo no longer typecheck against the latest published `@latest` SDK.
+
 ## Using a workflow from another repo
 
 Reference workflows by path and ref in downstream repos:
