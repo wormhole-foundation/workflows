@@ -31,16 +31,28 @@ jobs:
       - name: Override Wormhole SDK to @latest
         run: |
           npm install --no-save --force @wormhole-foundation/sdk@latest
-          npm ls @wormhole-foundation/sdk --depth=0 || true
 
       # Resolve and record the SDK version installed
       - name: Resolve Wormhole SDK version
         id: sdk-version
         run: |
           set -e
-          version=$(node -p "require('@wormhole-foundation/sdk/package.json').version")
-          echo "Using @wormhole-foundation/sdk@$version"
-          echo "sdk_version=$version" >> "$GITHUB_OUTPUT"
+          node <<'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          const pkgPath = path.join(process.cwd(), 'node_modules', '@wormhole-foundation', 'sdk', 'package.json');
+          if (!fs.existsSync(pkgPath)) {
+            throw new Error('Could not find node_modules/@wormhole-foundation/sdk/package.json');
+          }
+          const version = JSON.parse(fs.readFileSync(pkgPath, 'utf8')).version;
+          if (!version) {
+            throw new Error('Version not found in @wormhole-foundation/sdk package.json');
+          }
+          console.log(`Using @wormhole-foundation/sdk@${version}`);
+          if (process.env.GITHUB_OUTPUT) {
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `sdk_version=${version}\n`);
+          }
+          EOF
 
       # Run typecheck, capture logs, and record result
       - name: Type check against latest SDK
