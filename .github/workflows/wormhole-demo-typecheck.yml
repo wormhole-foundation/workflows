@@ -2,6 +2,12 @@ name: Wormhole - SDK Type Check
 
 on:
   workflow_call:
+    inputs:
+      package_manager:
+        description: Package manager to use for install/typecheck steps (npm or yarn).
+        type: string
+        required: false
+        default: npm
 
 permissions:
   contents: read
@@ -16,21 +22,60 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # Install Node.js runtime with npm cache
+      # Install Node.js runtime with dependency cache
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: ${{ inputs.package_manager == 'yarn' && 'yarn' || 'npm' }}
+
+      - name: Enable Corepack for Yarn
+        if: inputs.package_manager == 'yarn'
+        run: corepack enable
 
       # Install dependencies from lockfile
       - name: Install dependencies (locked versions)
-        run: npm ci
+        run: |
+          set -euo pipefail
+          case "${{ inputs.package_manager }}" in
+            yarn)
+              yarn_version=$(yarn --version)
+              if [[ "$yarn_version" == 1.* ]]; then
+                yarn install --frozen-lockfile
+              else
+                yarn install --immutable
+              fi
+              ;;
+            npm)
+              npm ci
+              ;;
+            *)
+              echo "Unsupported package_manager: ${{ inputs.package_manager }} (use npm or yarn)"
+              exit 1
+              ;;
+          esac
 
-      # Override Wormhole SDK to latest without persisting to lockfile
+      # Override Wormhole SDK to latest for this run
       - name: Override Wormhole SDK to @latest
         run: |
-          npm install --no-save --force @wormhole-foundation/sdk@latest
+          set -euo pipefail
+          case "${{ inputs.package_manager }}" in
+            yarn)
+              yarn_version=$(yarn --version)
+              if [[ "$yarn_version" == 1.* ]]; then
+                yarn add --dev @wormhole-foundation/sdk@latest --no-lockfile
+              else
+                yarn add --dev @wormhole-foundation/sdk@latest
+              fi
+              ;;
+            npm)
+              npm install --no-save --force @wormhole-foundation/sdk@latest
+              ;;
+            *)
+              echo "Unsupported package_manager: ${{ inputs.package_manager }} (use npm or yarn)"
+              exit 1
+              ;;
+          esac
 
       # Resolve and record the SDK version installed
       - name: Resolve Wormhole SDK version
@@ -68,7 +113,11 @@ jobs:
           echo "Running typecheck against @wormhole-foundation/sdk@${sdk_version:-unknown}"
           set -o pipefail
           set +e
-          npm run typecheck 2>&1 | tee typecheck.log
+          if [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn run typecheck 2>&1 | tee typecheck.log
+          else
+            npm run typecheck 2>&1 | tee typecheck.log
+          fi
           exit_code=${PIPESTATUS[0]}
           set -e
           tail -n 200 typecheck.log > typecheck.tail.log || true
