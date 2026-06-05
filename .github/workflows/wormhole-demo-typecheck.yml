@@ -1,4 +1,4 @@
-name: Wormhole - SDK Type Check
+name: Wormhole - SDK Type Check #comment
 
 on:
   workflow_call:
